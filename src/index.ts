@@ -38,7 +38,7 @@ async function main(): Promise<void> {
         logger.info(`Express listening on port ${config.get().LISTEN_PORT}`);
     });
     
-    // proper shutdown on Ctrl+C
+    // proper shutdown on Ctrl+C and kill
     const onProcessSignal = async (signal: NodeJS.Signals) => {
         logger.info('Got signal', signal);
         await new Promise<void>((r, e) => sv.close((err) => {
