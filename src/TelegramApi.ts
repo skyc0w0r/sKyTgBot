@@ -1,5 +1,8 @@
 import fetch from 'node-fetch';
 import RequestParams from './Model/Internal/RequestParams';
+import UnknownJsonResponse from './Model/Internal/UnknownJsonResponse';
+import Message from './Model/Telegram/Message';
+import SetWebhookResponse from './Model/Telegram/SetWebhookResponse';
 import Webhook from './Model/Telegram/Webhook';
 
 const TG_BASE_API_ADDRESS = 'https://api.telegram.org/bot';
@@ -12,12 +15,34 @@ class TelegramApi {
 
     public GetWebhookInfo(): Promise<Webhook> {
         return this.getData('getWebhookInfo', Webhook);
+        // return this.getDataUnknown('getWebhookInfo').then(e => e as Webhook);
     }
 
-    public async SetWebHook(hookUrl: string): Promise<boolean> {
-        const res = await this.postData('setWebhook', null, { url: hookUrl});
-        console.log('Result: ', res);
-        return true;
+    public SetWebHook(hookUrl: string): Promise<SetWebhookResponse> {
+        return this.postData('setWebhook', SetWebhookResponse, { url: hookUrl});
+    }
+
+    /**
+     * Use this method to send text messages. On success, the sent `Message` is returned.
+     * @param chat Unique identifier for the target chat or username of the target channel (in the format `@channelusername`)
+     * @param text 
+     * @param replyTo 
+     * @returns 
+     */
+    public SendMessage(chat: number | string, text: string, replyTo?: number): Promise<Message> {
+        const p: RequestParams = {
+            chat_id: chat,
+            text,
+        };
+        if (replyTo) {
+            p.reply_to_message_id = replyTo;
+        };
+        return this.postData('sendMessage', Message, p);
+    }
+
+
+    private getDataUnknown(method: string, params?: RequestParams): Promise<unknown> {
+        return this.getData(method, UnknownJsonResponse, params).then(e => e.data);
     }
 
     private getData<Type>(method: string, TypeNew: new(obj?: unknown) => Type, params?: RequestParams): Promise<Type> {
@@ -29,7 +54,7 @@ class TelegramApi {
         return fetch(url, {
             method: 'GET',
             headers: {
-                'Content-Type': 'application/json',
+                'Accept': 'application/json',
             }
         }).then(resp => {
             if (!resp.ok) {
@@ -37,11 +62,15 @@ class TelegramApi {
             }
             return resp.json();
         }).then(j => {
-            return new TypeNew(j)
-        })
+            return new TypeNew(j);
+        });
     }
 
-    private postData<Type>(method: string, TypeNew: new(obj?: unknown) => Type | null, params?: RequestParams): Promise<Type | unknown> {
+    private postDataUnknown(method: string, params?: RequestParams): Promise<unknown> {
+        return this.postData(method, UnknownJsonResponse, params).then(e => e.data);
+    }
+
+    private postData<Type>(method: string, TypeNew: new(obj?: unknown) => Type, params?: RequestParams): Promise<Type> {
         const url = `${TG_BASE_API_ADDRESS}${this.token}/${method}`;
         return fetch(url, {
             method: 'POST',
@@ -55,11 +84,8 @@ class TelegramApi {
             }
             return resp.json();
         }).then(j => {
-            if (TypeNew) {
-                return new TypeNew(j)
-            }
-            return j;
-        })
+            return new TypeNew(j);
+        });
     }
 }
 

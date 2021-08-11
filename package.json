@@ -6,8 +6,10 @@
     "node": ">= 14.16 <15"
   },
   "devDependencies": {
+    "@types/express": "^4.17.13",
     "@types/jest": "~26.0.23",
     "@types/node": "~14.14.45",
+    "@types/node-fetch": "^2.5.12",
     "@typescript-eslint/eslint-plugin": "~4.28.2",
     "@typescript-eslint/parser": "~4.28.2",
     "eslint": "~7.30.0",
@@ -33,7 +35,7 @@
   "author": "skycolor @ skycolor.space",
   "license": "Apache-2.0",
   "dependencies": {
-    "@types/node-fetch": "^2.5.12",
+    "express": "^4.17.1",
     "node-fetch": "^2.6.1",
     "tslib": "~2.3.0"
   },

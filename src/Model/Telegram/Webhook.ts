@@ -8,7 +8,12 @@ class Webhook {
     public MaxConnections: number | null;
     public AllowedUpdates: Array<string>;
 
-    constructor(obj: unknown) {
+    constructor(outer?: unknown) {
+        if (!outer || !outer['ok']) {
+            throw new Error(`Invalid response: ${outer}`);
+        }
+        const obj = outer['result'];
+        
         this.Url = obj && obj['url'] || null;
         this.HasCustomCert = obj && obj['has_custom_certificate'] || false;
         this.PendingUpdateCount = obj && obj['pending_update_count'] || 0;
