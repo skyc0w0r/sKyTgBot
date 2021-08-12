@@ -1,4 +1,6 @@
 import fetch from 'node-fetch';
+import ytdl from 'ytdl-core';
+import { Readable } from 'stream';
 import RequestParams from './Model/Internal/RequestParams';
 import Video from './Model/YouTube/Video';
 import VideosResponse from './Model/YouTube/VideosResponse';
@@ -16,6 +18,10 @@ class YouTubeApi {
             part: 'contentDetails,snippet',
             id
         }).then(r => r.Items.length > 0 ? r.Items[0] : null);
+    }
+
+    public getAudioStream(id: string): Readable {
+        return ytdl(id, { filter: 'audioonly' });
     }
 
     private getData<Type>(method: string, TypeNew: new(obj?: unknown) => Type, params?: RequestParams): Promise<Type> {

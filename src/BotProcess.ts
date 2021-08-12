@@ -31,11 +31,11 @@ class BotProcess {
                 if (!link) {
                     return await this.yt2audioHelp(msg);
                 }
-                await this.yt2audio(msg, link);
+                return await this.yt2audio(msg, link);
             }
             const link = this.tryGetYTLink(msg.Text);
             if (link) {
-                await this.yt2audio(msg, link);
+                return await this.yt2audio(msg, link);
             }
 
             // const name = update.Message.Chat.Type === 'private' ? update.Message.Chat.Username : update.Message.Chat.Title;
