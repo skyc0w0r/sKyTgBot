@@ -8,7 +8,7 @@ if (!existsSync(cachePath)) {
 }
 
 function getTempFileName(ext: string): string {
-    const maxRetries = 0;
+    const maxRetries = 5;
     let retries = 0;
     while (retries < maxRetries) {
         const name = shortid.generate();
