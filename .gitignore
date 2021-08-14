@@ -30,3 +30,5 @@ build/
 
 # user's
 config.json
+database.json
+cache/

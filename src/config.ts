@@ -6,6 +6,7 @@ interface Config {
     TG_HOOK_URL: string
     LISTEN_PORT: number
     YT_DATA_TOKEN: string
+    ADMIN_ID: number
 }
 
 const PLACEHOLDER = '[change_me]';
@@ -14,9 +15,10 @@ const DefaultConfig: Config = {
     TG_HOOK_URL: 'https://bot.skycolor.space/tg',
     LISTEN_PORT: 32280,
     YT_DATA_TOKEN: PLACEHOLDER,
+    ADMIN_ID: 0,
 };
 const configPath = join(process.cwd(), 'config.json');
-let CurrentConfig: Config | undefined = undefined; 
+let CurrentConfig: Config | undefined = undefined;
 
 function checkConfig(): void {
     if (CurrentConfig) {
@@ -35,7 +37,7 @@ function checkConfig(): void {
 
         const placeholders = new Array<string>();
         for (const key in DefaultConfig) {
-            if (!CurrentConfig[key]) {
+            if (!(key in CurrentConfig)) {
                 expandConfig();
                 throw new Error('Config got expanded with new values, pleace check and restart');
             }

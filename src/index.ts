@@ -2,6 +2,7 @@ import express from 'express';
 import { URL } from 'url';
 import BotProcess from './BotProcess';
 import config from './config';
+import DataBase from './DataBase';
 import logger from './logger';
 import Update from './Model/Telegram/Update';
 import TelegramApi from './TelegramApi';
@@ -12,8 +13,10 @@ async function main(): Promise<void> {
 
     const tgapi = new TelegramApi(config.get().TG_BOT_TOKEN);
     const ytapi = new YouTubeApi(config.get().YT_DATA_TOKEN);
+    const db = new DataBase();
+    await db.init();
     const app = express();
-    const bot = new BotProcess(tgapi, ytapi);
+    const bot = new BotProcess(tgapi, ytapi, db);
     
     // check hook
     if (!process.env['BOT_NO_HOOK']) {

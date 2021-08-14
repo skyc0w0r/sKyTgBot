@@ -1,11 +1,13 @@
 import { existsSync, mkdirSync, renameSync, unlinkSync } from 'fs';
 import { isAbsolute, join } from 'path';
 import shortid from 'shortid';
+import { Magic, MAGIC_MIME_TYPE } from 'mmmagic';
 
 const cachePath = join(process.cwd(), 'cache');
 if (!existsSync(cachePath)) {
     mkdirSync(cachePath);
 }
+const magic = new Magic(MAGIC_MIME_TYPE);
 
 function getTempFileName(ext: string): string {
     const maxRetries = 5;
@@ -40,22 +42,48 @@ function moveToCache(sourcePath: string): string {
 }
 
 function removeFromCache(filePath: string): void {
+    filePath = normalyzePath(filePath);
+    // Ахуенные нэйминги
+    unlinkSync(filePath);
+}
+
+function getMime(filepath: string): Promise<string> {
+    filepath = normalyzePath(filepath);
+    return new Promise<string>((resolve, reject) => {
+        magic.detectFile(filepath, (err, res) => {
+            if (err) {
+                reject(err);
+            }
+            let mime = '';
+            if (Array.isArray(res)) {
+                if (res.length > 0) {
+                    mime = res[0];
+                }
+            } else {
+                mime = res as string;
+            }
+            resolve(mime);
+        });
+    });
+}
+
+function normalyzePath(filePath: string): string {
     if (!filePath.startsWith(cachePath)) {
-        if (isAbsolute(cachePath)) {
-            throw new Error(`Unable to remove file not from cache: ${filePath}`);
+        if (isAbsolute(filePath)) {
+            throw new Error(`File not from cache: ${filePath}`);
         }
         filePath = join(cachePath, filePath);
         if (!filePath.startsWith(cachePath)) {
-            throw new Error(`Unable to remove file not from cache: ${filePath}`);
+            throw new Error(`File not from cache: ${filePath}`);
         }
     }
-    // Ахуенные нэйминги
-    unlinkSync(filePath);
+    return filePath;
 }
 
 export default {
     getTempFileName,
     getExt,
     moveToCache,
-    removeFromCache
+    removeFromCache,
+    getMime
 };

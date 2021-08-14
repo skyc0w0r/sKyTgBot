@@ -1,5 +1,7 @@
 import Thumbnnail from './Thumbnnail';
 
+const THUMB_QUALITY = [ 'maxres', 'standard', 'high', 'medium', 'default' ];
+
 class VideoSnippet {
     public PublishedAt?: Date;
     public Title: string;
@@ -18,6 +20,15 @@ class VideoSnippet {
             }
         }
         this.ChannelTitle = obj && obj['channelTitle'] || '';
+    }
+
+    get bestThumbnail(): Thumbnnail {
+        for (const key of THUMB_QUALITY) {
+            if (this.Thumbnails[key]) {
+                return this.Thumbnails[key];
+            }
+        }
+        return null;
     }
 }
 

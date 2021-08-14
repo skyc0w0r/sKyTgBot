@@ -1,14 +1,17 @@
 import { createWriteStream } from 'fs';
 import fetch from 'node-fetch';
 import cache from './cache';
+import logger from './logger';
 
 function loadFile(url: string): Promise<string> {
+    logger.info('Loading file', url);
     return getBlob(url).then(b => {
         const filePath = cache.getTempFileName(cache.getExt(url));
         const fileStream = createWriteStream(filePath);
         b.pipe(fileStream);
         return new Promise<string>((resolve, reject) => {
             b.on('finish', () => {
+                logger.info('Loading complete', filePath);
                 resolve(filePath);
             });
             b.on('error', (e) => {
@@ -38,6 +41,7 @@ function getBlob(url: string, redirects = 0): Promise<NodeJS.ReadableStream> {
                 if (!loc) {
                     throw new Error(`Failed to get "${url}": status code ${resp.status}, but no Location header`);
                 }
+                logger.info('Redirecting', url, '->', loc);
                 return getBlob(loc, redirects + 1);
             }
             // failed

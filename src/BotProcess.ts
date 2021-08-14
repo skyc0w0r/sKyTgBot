@@ -1,6 +1,8 @@
+import DataBase from './DataBase';
 import logger from './logger';
 import Message from './Model/Telegram/Message';
 import Update from './Model/Telegram/Update';
+import net from './net';
 import TelegramApi from './TelegramApi';
 import YouTubeApi from './YouTubeApi';
 
@@ -9,10 +11,12 @@ const ytreg = new RegExp('(https?://)?(www.)?(youtube\\.com/watch\\?v=|youtu\\.b
 class BotProcess {
     private tgApi: TelegramApi;
     private ytApi: YouTubeApi;
+    private db: DataBase;
 
-    constructor(telegramApi: TelegramApi, youtubeApi: YouTubeApi) {
+    constructor(telegramApi: TelegramApi, youtubeApi: YouTubeApi, database: DataBase) {
         this.tgApi = telegramApi;
         this.ytApi = youtubeApi;
+        this.db = database;
     }
 
     public async Dispatch(update: Update): Promise<void> {
@@ -41,6 +45,7 @@ class BotProcess {
             // const name = update.Message.Chat.Type === 'private' ? update.Message.Chat.Username : update.Message.Chat.Title;
             // await this.tgApi.SendMessage(update.Message.Chat.Id, `Hello, ${name}, this is sample response`);
             // await this.tgApi.SendMessage(update.Message.Chat.Id, 'This is sample reply', update.Message.Id);
+            
             await this.tgApi.SendMessage(update.Message.Chat.Id, '🤔');
         } catch (e) {
             logger.error('Failed to dispatch update', update, 'because of error', e);
@@ -57,7 +62,16 @@ class BotProcess {
 
     private async yt2audio(msg: Message, link: string): Promise<void> {
         const videoInfo = await this.ytApi.getVideoInfo(link);
-        logger.debug('Got video info', videoInfo);
+        if (!videoInfo) {
+            return await this.tgApi.SendMessage(msg.Chat.Id, 'Invalid video id or failed to get video information').then();
+        }
+        const thumbnail = videoInfo.Snippet.bestThumbnail;
+        if (!thumbnail) {
+            logger.error('Video has no thumbnail (how?)', link);
+            return;
+        }
+        const thumbLocalPath = net.loadFile(thumbnail.Url);
+
     }
 
     private async yt2audioHelp(msg: Message): Promise<void> {
