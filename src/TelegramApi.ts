@@ -45,6 +45,14 @@ class TelegramApi {
         return this.postData('sendMessage', Message, p);
     }
 
+    /**
+     * Use this method to send photos. On success, the sent Message is returned.
+     * @param chat 
+     * @param photo 
+     * @param caption 
+     * @param replyTo 
+     * @returns 
+     */
     public sendPhoto(chat: number | string, photo: RequestFile, caption: string, replyTo?: number): Promise<Message> {
         const p: RequestParams = {
             chat_id: chat,
@@ -55,6 +63,18 @@ class TelegramApi {
             p.reply_to_message_id = replyTo;
         }
         return this.postDataMultipart('sendPhoto', Message, p);
+    }
+
+    public sendAudio(chat: number | string, audio: RequestFile, caption: string, replyTo?: number): Promise<Message> {
+        const p: RequestParams = {
+            chat_id: chat,
+            audio,
+            caption,
+        };
+        if (replyTo) {
+            p.reply_to_message_id = replyTo;
+        }
+        return this.postDataMultipart('sendAudio', Message, p);
     }
 
 

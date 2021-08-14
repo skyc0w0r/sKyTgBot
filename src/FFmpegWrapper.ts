@@ -2,6 +2,7 @@ import { spawn, spawnSync } from 'child_process';
 import { Readable } from 'stream';
 import cache from './cache';
 import logger from './logger';
+import TrackMetadata from './Model/Internal/TrackMetadata';
 
 // magic number introduction
 const MAX_FFMPEG_PARALLEL = 6;
@@ -113,17 +114,8 @@ function getProcessCount(): number {
     return ffmpegsNow;
 }
 
-interface TrackMetadata {
-    title?: string
-    artist?: string
-    composer?: string
-    genre?: string
-    date?: string
-    comment?: string
-    coverPath?: string
-}
-
 export default {
     convertStreamAAC,
-    getProcessCount
+    getProcessCount,
+    addMetadata,
 };

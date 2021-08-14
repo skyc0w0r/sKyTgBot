@@ -1,5 +1,9 @@
+import cache from './cache';
 import DataBase from './DataBase';
+import FFmpegWrapper from './FFmpegWrapper';
+import human from './human';
 import logger from './logger';
+import TrackMetadata from './Model/Internal/TrackMetadata';
 import Message from './Model/Telegram/Message';
 import Update from './Model/Telegram/Update';
 import net from './net';
@@ -70,8 +74,40 @@ class BotProcess {
             logger.error('Video has no thumbnail (how?)', link);
             return;
         }
-        const thumbLocalPath = net.loadFile(thumbnail.Url);
+        const thumbLocalPath = await net.loadFile(thumbnail.Url);
+        const thumbMime = await cache.getMime(thumbLocalPath);
+        const caption = `Title: ${videoInfo.Snippet.Title}\n`
+            + `Channel: ${videoInfo.Snippet.ChannelTitle}\n`
+            + `Duration: ${human.time(videoInfo.ContentDetails.Duration)}`;
+        const photoMessage = await this.tgApi.sendPhoto(msg.Chat.Id, {path: thumbLocalPath, mime: thumbMime}, caption);
 
+        logger.debug('Thumbnail sent, message:', photoMessage);
+
+        const sourceStream = this.ytApi.getAudioStream(link);
+        const audioLocalPath = cache.getTempFileName('m4a');
+        await FFmpegWrapper.convertStreamAAC(sourceStream, audioLocalPath);
+        const meta: TrackMetadata = {
+            artist: videoInfo.Snippet.ChannelTitle,
+            title: videoInfo.Snippet.Title,
+            date: human.date(videoInfo.Snippet.PublishedAt),
+            composer: link,
+            coverPath: thumbLocalPath,
+            genre: 'Music',
+        };
+        await FFmpegWrapper.addMetadata(audioLocalPath, meta);
+        const audioMime = await cache.getMime(audioLocalPath);
+        const audioMessage = await this.tgApi.sendAudio(msg.Chat.Id, { path: audioLocalPath, mime: audioMime }, '');
+
+        logger.debug('Audio sent, message:', audioMessage);
+
+        await this.db.set(link, {
+            title: videoInfo.Snippet.Title,
+            channel: videoInfo.Snippet.ChannelTitle,
+            duration: videoInfo.ContentDetails.Duration,
+            size: audioMessage.Audio.FileSize || 0,
+            thumbId: photoMessage.Photo[0].Id,
+            fileId: audioMessage.Audio.Id
+        });
     }
 
     private async yt2audioHelp(msg: Message): Promise<void> {

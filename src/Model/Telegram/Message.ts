@@ -1,3 +1,4 @@
+import Audio from './Audio';
 import Chat from './Chat';
 import PhotoSize from './PhotoSize';
 import User from './User';
@@ -27,6 +28,10 @@ class Message {
      * Message is a photo, available sizes of the photo
      */
     public Photo: Array<PhotoSize> | null;
+    /**
+     * Message is an audio file, information about the file
+     */
+    public Audio: Audio | null;
 
     constructor(obj?: unknown) {
         this.Id = obj && obj['message_id'];
@@ -40,7 +45,12 @@ class Message {
             for (const e of obj['photo']) {
                 this.Photo.push(new PhotoSize(e));
             }
+            this.Photo.sort((a, b) => b.Height * b.Width - a.Width * a.Height);
+        } else {
+            this.Photo = null;
         }
+        
+        this.Audio = obj && obj['audio'] && new Audio(obj['audio']) || null;
     }
 }
 
