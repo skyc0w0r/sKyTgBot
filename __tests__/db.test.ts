@@ -35,6 +35,13 @@ describe('database test', () => {
         expect(count).toBe(2);
     });
 
+    it('Should check if item exists', async () => {
+        let res = await db.exists('test_1');
+        expect(res).toBeTruthy();
+        res = await db.exists('test_3');
+        expect(res).toBeFalsy();
+    });
+
     it('Should throw on non existing item', async () => {
         await expect(db.get('test_3')).rejects.toThrow();
     });

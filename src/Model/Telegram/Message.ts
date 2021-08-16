@@ -23,7 +23,7 @@ class Message {
     /**
      * For text messages, the actual UTF-8 text of the message, 0-4096 characters
      */
-    public Text: string;
+    public Text?: string;
     /**
      * Message is a photo, available sizes of the photo
      */

@@ -23,9 +23,14 @@ class VideoSnippet {
     }
 
     get bestThumbnail(): Thumbnnail {
+        return this.limitedThumbnail(10_000);
+    }
+
+    limitedThumbnail(maxLength: number): Thumbnnail {
         for (const key of THUMB_QUALITY) {
-            if (this.Thumbnails[key]) {
-                return this.Thumbnails[key];
+            const thumb = this.Thumbnails[key];
+            if (thumb && thumb.Height <= maxLength && thumb.Width <= maxLength) {
+                return thumb;
             }
         }
         return null;

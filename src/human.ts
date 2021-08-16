@@ -13,7 +13,7 @@ function time(seconds: number): string {
 function size(bytes: number): string {
     const postfixes = [ 'B', 'KB', 'MB', 'GB' ];
     let index = 0;
-    while (bytes >= 1024 && index <= postfixes.length) {
+    while (bytes >= 1024 && index < postfixes.length) {
         bytes /= 1024;
         index += 1;
     }
