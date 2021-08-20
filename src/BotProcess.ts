@@ -134,7 +134,7 @@ class BotProcess {
         const caption = `🎵 *${_em(videoInfo.Snippet.Title)}*\n`
             + `👤 *${_em(videoInfo.Snippet.ChannelTitle)}*\n`
             + `🕒 *${_em(human.time(videoInfo.ContentDetails.Duration))}*\n`
-            + `💾 ~*${_em(human.size(estimatedSize))}*`;
+            + `💾 \\~*${_em(human.size(estimatedSize))}*`;
         const photoMessage = await this.tgApi.SendPhoto(msg.Chat.Id, {path: thumbLocalPath, mime: thumbMime}, caption);
 
         logger.debug('Thumbnail sent:', photoMessage);
