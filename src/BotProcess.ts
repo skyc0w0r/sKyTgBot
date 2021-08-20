@@ -32,6 +32,10 @@ class BotProcess {
         const msg = update.Message;
 
         try {
+            if (msg.Text && msg.Text === '/start') {
+                await this.startMsg(msg);
+                return;
+            }
             if (msg.Text && msg.Text.startsWith('/yt')) {
                 const tokens = msg.Text.split(' ', 2);
                 if (tokens.length !== 2) {
@@ -70,6 +74,14 @@ class BotProcess {
         }
     }
 
+    private async startMsg(msg: Message): Promise<void> {
+        await this.tgApi.SendMessage(msg.Chat.Id, _em('Greetings, skybot here.\n'
+            + 'Bot is in development.\n'
+            + 'Currently it can:\n'
+            + '\t/yt load videos from YouTube as audio\n'
+            + '\t/last Show last 10 loaded songs'));
+    }
+
     private tryGetYTLink(text: string): string | null {
         const ytregres = ytreg.exec(text);
         if (ytregres && ytregres.groups && ytregres.groups['link']) {
@@ -100,18 +112,29 @@ class BotProcess {
     private async yt2audioNew(msg: Message, link: string): Promise<void> {
         const videoInfo = await this.ytApi.getVideoInfo(link);
         if (!videoInfo) {
-            return await this.tgApi.SendMessage(msg.Chat.Id, 'Invalid video id or failed to get video information').then();
+            await this.tgApi.SendMessage(msg.Chat.Id, 'Invalid video id or failed to get video information').then();
+            return;
         }
         const thumbnailLarge = videoInfo.Snippet.bestThumbnail;
         if (!thumbnailLarge) {
             logger.error('Video has no thumbnail (how?)', link);
+            await this.tgApi.SendMessage(msg.Chat.Id, 'Failed to get video info, try again later 😔');
+            return;
+        }
+
+        // magic number calculated based on some videos
+        // cat database.json | jq '.audios[] | .size / .duration' | jq -s '.' | jq 'add / length'
+        const estimatedSize = videoInfo.ContentDetails.Duration * 20634;
+        if (estimatedSize > 50 * 1024 * 1024) {
+            await this.tgApi.SendMessage(msg.Chat.Id, 'Video is too long to be uploaded to telegeram');
             return;
         }
         const thumbLocalPath = await net.loadFile(thumbnailLarge.Url);
         const thumbMime = await cache.getMime(thumbLocalPath);
         const caption = `🎵 *${_em(videoInfo.Snippet.Title)}*\n`
             + `👤 *${_em(videoInfo.Snippet.ChannelTitle)}*\n`
-            + `🕒 *${_em(human.time(videoInfo.ContentDetails.Duration))}*`;
+            + `🕒 *${_em(human.time(videoInfo.ContentDetails.Duration))}*\n`
+            + `💾 ~*${_em(human.size(estimatedSize))}*`;
         const photoMessage = await this.tgApi.SendPhoto(msg.Chat.Id, {path: thumbLocalPath, mime: thumbMime}, caption);
 
         logger.debug('Thumbnail sent:', photoMessage);
@@ -169,7 +192,8 @@ class BotProcess {
         
         const caption = `🎵 *${_em(a.title)}*\n`
             + `👤 *${_em(a.channel)}*\n`
-            + `🕒 *${_em(human.time(a.duration))}*`;
+            + `🕒 *${_em(human.time(a.duration))}*\n`
+            + `💾 *${_em(human.size(a.size))}*`;
         const photoMessage = await this.tgApi.SendPhoto(msg.Chat.Id, a.thumbId, caption);
 
         logger.debug('Thumbnail sent:', photoMessage);
@@ -187,7 +211,7 @@ class BotProcess {
     }
 
     private async yt2audioHelp(msg: Message): Promise<void> {
-        const text = 'Usage: /yt ( youtube.com/watch?v=<id> | youtu.be/<id> )';
+        const text = 'Usage: /yt <link to youtube>\nOr just send me link using bot live @vid';
         return await this.tgApi.SendMessage(msg.Chat.Id, _em(text)).then();
     }
 
