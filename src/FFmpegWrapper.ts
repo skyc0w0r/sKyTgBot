@@ -37,6 +37,7 @@ async function parallelLock(timeout?: number): Promise<void> {
 async function convertStreamAAC(input: Readable, outputPath: string, timeout?: number): Promise<void> {
     await parallelLock(timeout);
     ffmpegsNow += 1;
+    logger.info('FFmpeg started for', outputPath);
 
     const proc = spawn(ffmpegCmd, [
         '-i', 'pipe:0',
@@ -46,24 +47,38 @@ async function convertStreamAAC(input: Readable, outputPath: string, timeout?: n
         '-f', 'ipod',
         outputPath
     ]);
-    return await new Promise<void>((resolve, reject) => {
-        proc.on('error', (e) => {
-            logger.error('FFmpeg converter failed', e);
-            ffmpegsNow -= 1;
-            reject(e);
+    try {
+        await new Promise<void>((resolve, reject) => {
+            proc.on('error', (e) => {
+                logger.error('FFmpeg converter failed', e);
+                ffmpegsNow -= 1;
+                reject(e);
+            });
+            proc.on('exit', (code) => {
+                logger.debug('FFmpeg converter finished with code', code);
+                ffmpegsNow -= 1;
+                resolve();
+            });
+            proc.stderr.on('data', (chunck) => {
+                // TODO: add progress indication 🤔
+                // console.log(chunck.toString());
+            });
+            input.on('error', (e) => {
+                logger.error('Error in input stream', e);
+                reject(e);
+            });
+    
+            input.pipe(proc.stdin);
         });
-        proc.on('exit', (code) => {
-            logger.debug('FFmpeg converter finished with code', code);
-            ffmpegsNow -= 1;
-            resolve();
-        });
-        proc.stderr.on('data', (chunck) => {
-            // TODO: add progress indication 🤔
-            // console.log(chunck.toString());
-        });
-
-        input.pipe(proc.stdin);
-    });
+    } catch (e) {
+        if (!proc.killed) {
+            proc.kill();
+        }
+        if (!input.destroyed) {
+            input.emit('close');
+        }
+        throw e;
+    }
 }
 
 async function addMetadata(filename: string, meta: TrackMetadata, timeout?: number): Promise<void> {

@@ -1,6 +1,6 @@
 {
   "name": "tgskybot",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Building my own telegram bot.",
   "devDependencies": {
     "@types/express": "^4.17.13",
