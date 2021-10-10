@@ -1,7 +1,7 @@
 import { createWriteStream } from 'fs';
 import fetch from 'node-fetch';
-import cache from './cache';
-import logger from './logger';
+import cache from './cache.js';
+import logger from './logger.js';
 
 function loadFile(url: string): Promise<string> {
     logger.info('Loading file', url);

@@ -1,14 +1,13 @@
 import fetch from 'node-fetch';
 import { FormData, fileFromPathSync } from 'formdata-node';
 import { FormDataEncoder } from 'form-data-encoder';
-import RequestParams from './Model/Internal/RequestParams';
-import UnknownJsonResponse from './Model/Internal/UnknownJsonResponse';
-import Message from './Model/Telegram/Message';
-import Webhook from './Model/Telegram/Webhook';
+import RequestParams from './Model/Internal/RequestParams.js';
+import Message from './Model/Telegram/Message.js';
+import Webhook from './Model/Telegram/Webhook.js';
 import { Readable } from 'stream';
-import TelegramResponseWrapper from './Model/Internal/TelegramResponseWrapper';
-import RequestFile from './Model/Internal/RequestFile';
-import MessageEntity from './Model/Telegram/MessageEntity';
+import TelegramResponseWrapper from './Model/Internal/TelegramResponseWrapper.js';
+import RequestFile from './Model/Internal/RequestFile.js';
+import MessageEntity from './Model/Telegram/MessageEntity.js';
 
 type ChatAction = 'typing' | 'upload_photo' | 'record_video' | 'upload_video' | 'record_voice' | 'upload_voice' | 'upload_document' | 'find_location' | 'record_video_note' | 'upload_video_note';
 type ParseMode = 'MarkdownV2' | 'HTML' | 'Markdown';

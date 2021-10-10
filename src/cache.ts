@@ -1,13 +1,13 @@
 import { existsSync, mkdirSync, renameSync, unlinkSync } from 'fs';
 import { isAbsolute, join } from 'path';
 import shortid from 'shortid';
-import { Magic, MAGIC_MIME_TYPE } from 'mmmagic';
+import mmagic from 'mmmagic';
 
 const cachePath = join(process.cwd(), 'cache');
 if (!existsSync(cachePath)) {
     mkdirSync(cachePath);
 }
-const magic = new Magic(MAGIC_MIME_TYPE);
+const magic = new mmagic.Magic(mmagic.MAGIC_MIME_TYPE);
 
 function getTempFileName(ext: string): string {
     const maxRetries = 5;

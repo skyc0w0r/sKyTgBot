@@ -1,4 +1,4 @@
-import Thumbnnail from './Thumbnnail';
+import Thumbnnail from './Thumbnnail.js';
 
 const THUMB_QUALITY = [ 'maxres', 'standard', 'high', 'medium', 'default' ];
 

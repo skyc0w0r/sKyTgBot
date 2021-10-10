@@ -20,7 +20,7 @@
     "typescript": "~4.3.5"
   },
   "scripts": {
-    "start": "node build/index.js",
+    "start": "node --experimental-modules build",
     "clean": "rimraf coverage build tmp",
     "prebuild": "npm run lint",
     "build": "tsc -p tsconfig.release.json",
@@ -46,5 +46,6 @@
   },
   "volta": {
     "node": "14.16.1"
-  }
+  },
+  "type": "module"
 }

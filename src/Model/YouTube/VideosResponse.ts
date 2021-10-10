@@ -1,4 +1,4 @@
-import Video from './Video';
+import Video from './Video.js';
 
 class VideosResponse {
     public Items: Array<Video>;

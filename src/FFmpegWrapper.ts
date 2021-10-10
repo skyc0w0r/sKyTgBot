@@ -1,8 +1,8 @@
 import { spawn, spawnSync } from 'child_process';
 import { Readable } from 'stream';
-import cache from './cache';
-import logger from './logger';
-import TrackMetadata from './Model/Internal/TrackMetadata';
+import cache from './cache.js';
+import logger from './logger.js';
+import TrackMetadata from './Model/Internal/TrackMetadata.js';
 
 // magic number introduction
 const MAX_FFMPEG_PARALLEL = 6;

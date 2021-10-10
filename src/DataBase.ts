@@ -1,7 +1,7 @@
 import { JsonDB } from 'node-json-db';
-import { Config } from 'node-json-db/dist/lib/JsonDBConfig';
+import { Config } from 'node-json-db/dist/lib/JsonDBConfig.js';
 import { join } from 'path';
-import AudioEntity from './Model/Internal/AudioEntity';
+import AudioEntity from './Model/Internal/AudioEntity.js';
 
 const DB_PATH_DEFAULT = 'database.json';
 

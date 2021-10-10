@@ -1,7 +1,7 @@
-import Audio from './Audio';
-import Chat from './Chat';
-import PhotoSize from './PhotoSize';
-import User from './User';
+import Audio from './Audio.js';
+import Chat from './Chat.js';
+import PhotoSize from './PhotoSize.js';
+import User from './User.js';
 
 class Message {
     /**

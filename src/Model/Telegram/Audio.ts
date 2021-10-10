@@ -1,4 +1,4 @@
-import PhotoSize from './PhotoSize';
+import PhotoSize from './PhotoSize.js';
 
 class Audio {
     public Id: string;

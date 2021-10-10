@@ -1,5 +1,5 @@
-import VideoContentDetails from './VideoContentDetails';
-import VideoSnippet from './VideoSnippet';
+import VideoContentDetails from './VideoContentDetails.js';
+import VideoSnippet from './VideoSnippet.js';
 
 class Video {
     public Snippet?: VideoSnippet;

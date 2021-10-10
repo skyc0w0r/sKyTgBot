@@ -1,16 +1,19 @@
-import cache from './cache';
-import DataBase from './DataBase';
-import FFmpegWrapper from './FFmpegWrapper';
-import human from './human';
-import logger from './logger';
-import TrackMetadata from './Model/Internal/TrackMetadata';
-import Message from './Model/Telegram/Message';
-import Update from './Model/Telegram/Update';
-import net from './net';
-import TelegramApi from './TelegramApi';
-import YouTubeApi from './YouTubeApi';
+import cache from './cache.js';
+import DataBase from './DataBase.js';
+import FFmpegWrapper from './FFmpegWrapper.js';
+import human from './human.js';
+import logger from './logger.js';
+import AudioEntity from './Model/Internal/AudioEntity.js';
+import RequestFile from './Model/Internal/RequestFile.js';
+import TrackMetadata from './Model/Internal/TrackMetadata.js';
+import Message from './Model/Telegram/Message.js';
+import Update from './Model/Telegram/Update.js';
+import net from './net.js';
+import TelegramApi from './TelegramApi.js';
+import YouTubeApi from './YouTubeApi.js';
 
 const ytreg = new RegExp('(https?://)?(www.)?(youtube\\.com/watch\\?v=|youtu\\.be/)(?<link>[^?&]+)');
+const err400reg = new RegExp('[ \\n]4\\d\\d[ \\n]');
 
 class BotProcess {
     private tgApi: TelegramApi;
@@ -110,11 +113,18 @@ class BotProcess {
     }
 
     private async yt2audioNew(msg: Message, link: string): Promise<void> {
+        const audioEntity: Partial<AudioEntity> = {};
+
         const videoInfo = await this.ytApi.getVideoInfo(link);
         if (!videoInfo) {
             await this.tgApi.SendMessage(msg.Chat.Id, 'Invalid video id or failed to get video information').then();
             return;
         }
+
+        audioEntity.title = videoInfo.Snippet.Title;
+        audioEntity.channel = videoInfo.Snippet.ChannelTitle;
+        audioEntity.duration = videoInfo.ContentDetails.Duration;
+
         const thumbnailLarge = videoInfo.Snippet.bestThumbnail;
         if (!thumbnailLarge) {
             logger.error('Video has no thumbnail (how?)', link);
@@ -129,20 +139,38 @@ class BotProcess {
             await this.tgApi.SendMessage(msg.Chat.Id, 'Video is too long to be uploaded to telegeram');
             return;
         }
+        audioEntity.size = estimatedSize;
         const thumbLocalPath = await net.loadFile(thumbnailLarge.Url);
         const thumbMime = await cache.getMime(thumbLocalPath);
-        const caption = `🎵 *${_em(videoInfo.Snippet.Title)}*\n`
-            + `👤 *${_em(videoInfo.Snippet.ChannelTitle)}*\n`
-            + `🕒 *${_em(human.time(videoInfo.ContentDetails.Duration))}*\n`
-            + `💾 \\~*${_em(human.size(estimatedSize))}*`;
-        const photoMessage = await this.tgApi.SendPhoto(msg.Chat.Id, {path: thumbLocalPath, mime: thumbMime}, caption);
+        
+        const photoMessage = await this.sendThumb(msg, audioEntity as AudioEntity, true, {path: thumbLocalPath, mime: thumbMime});
+        audioEntity.thumbId = photoMessage.Photo[0].Id;
+        cache.removeFromCache(thumbLocalPath);
 
-        logger.debug('Thumbnail sent:', photoMessage);
         await this.tgApi.SendChatAction(msg.Chat.Id, 'upload_document');
 
         const sourceStream = this.ytApi.getAudioStream(link);
         const audioLocalPath = cache.getTempFileName('m4a');
-        await FFmpegWrapper.convertStreamAAC(sourceStream, audioLocalPath);
+        try {
+            await FFmpegWrapper.convertStreamAAC(sourceStream, audioLocalPath);
+        } catch (e) {
+            if (e instanceof Error) {
+                if (err400reg.test(e.message)) {
+                    audioEntity.available = 'no';
+
+                    await this.tgApi.SendMessage(msg.Chat.Id, 'Video is unavailable in my country or age restricted 😥');
+                    await this.db.set(link, audioEntity as AudioEntity);
+
+                    return;
+                }
+            }
+            audioEntity.available = 'probably';
+
+            await this.tgApi.SendMessage(msg.Chat.Id, 'Failed to get video 😥');
+            await this.db.set(link, audioEntity as AudioEntity);
+
+            return;
+        }
 
         const thumbSmall = videoInfo.Snippet.limitedThumbnail(320);
         let thumbSmallLocal = '';
@@ -161,54 +189,73 @@ class BotProcess {
         };
         await FFmpegWrapper.addMetadata(audioLocalPath, meta);
         const audioMime = await cache.getMime(audioLocalPath);
-        const audioMessage = await this.tgApi.SendAudio(
-            msg.Chat.Id,
-            { path: audioLocalPath, mime: audioMime },
-            '',
-            videoInfo.ContentDetails.Duration,
-            meta.artist,
-            meta.title,
-            thumbSmallMime ? { path: thumbSmallLocal, mime: thumbSmallMime } : null
-        );
 
-        logger.debug('Audio sent, message:', audioMessage);
-
-        await this.db.set(link, {
-            title: videoInfo.Snippet.Title,
-            channel: videoInfo.Snippet.ChannelTitle,
-            duration: videoInfo.ContentDetails.Duration,
-            size: audioMessage.Audio.FileSize || 0,
-            thumbId: photoMessage.Photo[0].Id,
-            fileId: audioMessage.Audio.Id
-        });
-
-        cache.removeFromCache(thumbLocalPath);
+        const audioMessage = await this.sendAudio(msg, audioEntity as AudioEntity, { path: audioLocalPath, mime: audioMime }, { path: thumbSmallLocal, mime: thumbSmallMime });
         cache.removeFromCache(thumbSmallLocal);
         cache.removeFromCache(audioLocalPath);
+        
+        audioEntity.size = audioMessage.Audio.FileSize;
+        audioEntity.fileId = audioMessage.Audio.Id;
+        audioEntity.available = 'yes';
+
+        await this.db.set(link, audioEntity as AudioEntity);
+
     }
 
     private async yt2audioCache(msg: Message, link: string): Promise<void> {
         const a = await this.db.get(link);
-        
+
+        await this.sendThumb(msg, a, true);
+
+        await this.sendAudio(msg, a);
+    }
+
+
+    private async sendThumb(msg: Message, a: AudioEntity, estimnated = false, upload: RequestFile = null): Promise<Message> {
         const caption = `🎵 *${_em(a.title)}*\n`
             + `👤 *${_em(a.channel)}*\n`
             + `🕒 *${_em(human.time(a.duration))}*\n`
-            + `💾 *${_em(human.size(a.size))}*`;
-        const photoMessage = await this.tgApi.SendPhoto(msg.Chat.Id, a.thumbId, caption);
+            + `💾 ${estimnated ? '\\~' : ''}*${_em(human.size(a.size))}*`;
+        let photoMessage: Message;
+        if (upload) {
+            photoMessage = await this.tgApi.SendPhoto(msg.Chat.Id, upload, caption);
+        } else {
+            photoMessage = await this.tgApi.SendPhoto(msg.Chat.Id, a.thumbId, caption);
+        }
 
         logger.debug('Thumbnail sent:', photoMessage);
 
-        const audioMessage = await this.tgApi.SendAudio(
-            msg.Chat.Id,
-            a.fileId,
-            '',
-            a.duration,
-            a.channel,
-            a.title,
-        );
+        return photoMessage;
+    }
+
+    private async sendAudio(msg: Message, a: AudioEntity, upload: RequestFile = null, thumb: RequestFile = null): Promise<Message> {
+        let audioMessage: Message;
+        if (upload) {
+            audioMessage = await this.tgApi.SendAudio(
+                msg.Chat.Id,
+                upload,
+                '',
+                a.duration,
+                a.channel,
+                a.title,
+                thumb,
+            );
+        } else {
+            audioMessage = await this.tgApi.SendAudio(
+                msg.Chat.Id,
+                a.fileId,
+                '',
+                a.duration,
+                a.channel,
+                a.title,
+            );
+        }
 
         logger.debug('Audio sent, message:', audioMessage);
+
+        return audioMessage;
     }
+
 
     private async yt2audioHelp(msg: Message): Promise<void> {
         const text = 'Usage: /yt <link to youtube>\nOr just send me link using bot live @vid';

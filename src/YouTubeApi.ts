@@ -1,9 +1,9 @@
 import fetch from 'node-fetch';
 import ytdl from 'ytdl-core';
 import { Readable } from 'stream';
-import RequestParams from './Model/Internal/RequestParams';
-import Video from './Model/YouTube/Video';
-import VideosResponse from './Model/YouTube/VideosResponse';
+import RequestParams from './Model/Internal/RequestParams.js';
+import Video from './Model/YouTube/Video.js';
+import VideosResponse from './Model/YouTube/VideosResponse.js';
 
 const YT_BASE_DATA_API_ADDRESS = 'https://youtube.googleapis.com/youtube/v3';
 

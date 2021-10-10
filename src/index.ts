@@ -1,12 +1,12 @@
 import express from 'express';
 import { URL } from 'url';
-import BotProcess from './BotProcess';
-import config from './config';
-import DataBase from './DataBase';
-import logger from './logger';
-import Update from './Model/Telegram/Update';
-import TelegramApi from './TelegramApi';
-import YouTubeApi from './YouTubeApi';
+import BotProcess from './BotProcess.js';
+import config from './config.js';
+import DataBase from './DataBase.js';
+import logger from './logger.js';
+import Update from './Model/Telegram/Update.js';
+import TelegramApi from './TelegramApi.js';
+import YouTubeApi from './YouTubeApi.js';
 
 async function main(): Promise<void> {
     config.check();
