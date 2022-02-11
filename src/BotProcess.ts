@@ -145,7 +145,6 @@ class BotProcess {
         
         const photoMessage = await this.sendThumb(msg, audioEntity as AudioEntity, true, {path: thumbLocalPath, mime: thumbMime});
         audioEntity.thumbId = photoMessage.Photo[0].Id;
-        cache.removeFromCache(thumbLocalPath);
 
         await this.tgApi.SendChatAction(msg.Chat.Id, 'upload_document');
 
@@ -161,6 +160,7 @@ class BotProcess {
                     await this.tgApi.SendMessage(msg.Chat.Id, 'Video is unavailable in my country or age restricted 😥');
                     await this.db.set(link, audioEntity as AudioEntity);
 
+                    cache.removeFromCache(thumbLocalPath);
                     return;
                 }
             }
@@ -191,6 +191,7 @@ class BotProcess {
         const audioMime = await cache.getMime(audioLocalPath);
 
         const audioMessage = await this.sendAudio(msg, audioEntity as AudioEntity, { path: audioLocalPath, mime: audioMime }, { path: thumbSmallLocal, mime: thumbSmallMime });
+        cache.removeFromCache(thumbLocalPath);
         cache.removeFromCache(thumbSmallLocal);
         cache.removeFromCache(audioLocalPath);
         
