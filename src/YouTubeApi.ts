@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import ytdl from 'ytdl-core';
 import { Readable } from 'stream';
 import RequestParams from './Model/Internal/RequestParams.js';

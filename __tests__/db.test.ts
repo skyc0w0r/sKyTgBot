@@ -2,17 +2,12 @@ import { existsSync, unlinkSync } from 'fs';
 import DataBase from '../src/DataBase';
 
 describe('database test', () => {
-    const dbPath = './database-test.json';
+    const dbPath = './database-test.sqlite3';
     const db = new DataBase(dbPath);
+    jest.setTimeout(60*1000*60);
 
-    it('Should create db file', async () => {
+    beforeAll(async () => {
         await db.init();
-        expect(existsSync(dbPath)).toBeTruthy();
-    });
-
-    it('Should add 2 audio objects to db', async () => {
-        let count = await db.getCount();
-        expect(count).toBe(0);
 
         await db.set('test_1', {
             channel: 'channel_1',
@@ -20,7 +15,8 @@ describe('database test', () => {
             fileId: 'foo?',
             size: 1337,
             thumbId: 'bar?',
-            title: 'title_1'
+            title: 'title_1',
+            available: 'yes',
         });
         await db.set('test_2', {
             channel: 'channel_2',
@@ -28,22 +24,32 @@ describe('database test', () => {
             fileId: 'foo?',
             size: 1488,
             thumbId: 'bar?',
-            title: 'title_2'
+            title: 'title_2',
+            available: 'yes',
         });
+    });
 
-        count = await db.getCount();
+    afterAll(async () => {
+        await db.destroy();
+        unlinkSync(dbPath);
+    });
+
+    it('Should create db file', async () => {
+        await db.init();
+        expect(existsSync(dbPath)).toBeTruthy();
+    });
+
+    it('Should contain 2 audio objects in db', async () => {
+        const count = await db.getCount();
         expect(count).toBe(2);
     });
 
     it('Should check if item exists', async () => {
-        let res = await db.exists('test_1');
+        let res = await db.get('test_1');
         expect(res).toBeTruthy();
-        res = await db.exists('test_3');
-        expect(res).toBeFalsy();
-    });
 
-    it('Should throw on non existing item', async () => {
-        await expect(db.get('test_3')).rejects.toThrow();
+        res = await db.get('test_3');
+        expect(res).toBeFalsy();
     });
 
     it('Should get existing item', async () => {
@@ -53,12 +59,7 @@ describe('database test', () => {
 
     it('Should get last added item', async () => {
         const data = await db.getLastN(1);
-        expect(data.length).toBe(1);
-        expect(data[0].title).toBe('title_2');
-    });
-
-    it('Should cleanup test db file', () => {
-        unlinkSync(dbPath);
-        expect(existsSync(dbPath)).toBeFalsy();
+        expect(Object.keys(data).length).toBe(1);
+        expect(data[Object.keys(data)[0]].title).toBe('title_2');
     });
 });

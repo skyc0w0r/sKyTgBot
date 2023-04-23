@@ -1,15 +1,19 @@
 import express from 'express';
 import { URL } from 'url';
+import Logger from 'log4js';
 import BotProcess from './BotProcess.js';
 import config from './config.js';
 import DataBase from './DataBase.js';
-import logger from './logger.js';
 import Update from './Model/Telegram/Update.js';
 import TelegramApi from './TelegramApi.js';
 import YouTubeApi from './YouTubeApi.js';
+import { readFileSync } from 'fs';
+import AudioEntity from './Model/Internal/AudioEntity.js';
 
 async function main(): Promise<void> {
     config.check();
+    Logger.configure(config.get().LOG_CONFIG);
+    const logger = Logger.getLogger('main');
 
     const tgapi = new TelegramApi(config.get().TG_BOT_TOKEN);
     const ytapi = new YouTubeApi(config.get().YT_DATA_TOKEN);
@@ -18,6 +22,21 @@ async function main(): Promise<void> {
     const app = express();
     const bot = new BotProcess(tgapi, ytapi, db);
     
+    // migrate old db to new
+    if (process.env['MIGRATE_DB']) {
+        const oldDbPath = process.env['MIGRATE_DB'];
+        const oldDb = JSON.parse(readFileSync(oldDbPath).toString());
+        for (const videoId of oldDb['history']) {
+            const audio = oldDb['audios'][videoId] as AudioEntity;
+            if (!audio.available) audio.available = 'yes';
+            await db.set(videoId, audio);
+        }
+        const cnt = await db.getCount();
+        await db.destroy();
+        logger.info('Migration complete! Transfer count:', cnt);
+        return;
+    }
+
     // check hook
     if (!process.env['BOT_NO_HOOK']) {
         const info = await tgapi.GetWebhookInfo();
@@ -52,6 +71,7 @@ async function main(): Promise<void> {
         })).catch(e => {
             logger.error('Failed to shutdown server (how?)', e);
         });
+        await db.destroy();
         logger.info('Bye...');
     };
     process.on('SIGTERM', onProcessSignal);

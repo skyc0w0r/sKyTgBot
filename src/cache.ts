@@ -1,7 +1,10 @@
 import { existsSync, mkdirSync, renameSync, unlinkSync } from 'fs';
+import Logger from 'log4js';
+import mmagic from 'mmmagic';
 import { isAbsolute, join } from 'path';
 import shortid from 'shortid';
-import mmagic from 'mmmagic';
+
+const logger = Logger.getLogger('cache');
 
 const cachePath = join(process.cwd(), 'cache');
 if (!existsSync(cachePath)) {
@@ -19,6 +22,7 @@ function getTempFileName(ext: string): string {
         }
         const res = join(cachePath, `${name}${ext}`);
         if (!existsSync(res)) {
+            logger.info('New file:', res);
             return res;
         }
         retries++;
@@ -45,6 +49,8 @@ function removeFromCache(filePath: string): void {
     filePath = normalyzePath(filePath);
     // Ахуенные нэйминги
     unlinkSync(filePath);
+
+    logger.info('Removed file: ', filePath);
 }
 
 function getMime(filepath: string): Promise<string> {

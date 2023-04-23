@@ -1,15 +1,12 @@
-import fetch from 'node-fetch';
-import { FormData } from 'formdata-node';
-import { FormDataEncoder } from 'form-data-encoder';
-import { fileFromSync } from 'fetch-blob/from.js';
 import RequestParams from './Model/Internal/RequestParams.js';
 import Message from './Model/Telegram/Message.js';
 import Webhook from './Model/Telegram/Webhook.js';
-import { Readable } from 'stream';
 import TelegramResponseWrapper from './Model/Internal/TelegramResponseWrapper.js';
 import RequestFile from './Model/Internal/RequestFile.js';
 import MessageEntity from './Model/Telegram/MessageEntity.js';
 import path from 'path';
+import { blob } from 'node:stream/consumers';
+import { createReadStream } from 'fs';
 
 type ChatAction = 'typing' | 'upload_photo' | 'record_video' | 'upload_video' | 'record_voice' | 'upload_voice' | 'upload_document' | 'find_location' | 'record_video_note' | 'upload_video_note';
 type ParseMode = 'MarkdownV2' | 'HTML' | 'Markdown';
@@ -176,17 +173,15 @@ class TelegramApi {
         for (const key in params) {
             const v = params[key];
             if (isReqFile(v)) {
-                data.append(key, fileFromSync(v.path), path.basename(v.path));
+                data.append(key, await blob(createReadStream(v.path)) as any, path.basename(v.path));
             } else {
-                data.append(key, params[key]);
+                data.append(key, params[key] as any);
             }
         }
-        const encoder = new FormDataEncoder(data);
 
         const resp = await fetch(url, {
             method: 'POST',
-            body: Readable.from(encoder.encode()),
-            headers: encoder.headers
+            body: data
         });
         if (!resp.ok && !resp.body) {
             throw new Error(`Failed to post /${method}: ${resp.status} ${resp.statusText}`);

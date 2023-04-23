@@ -1,9 +1,10 @@
 import { spawn, spawnSync } from 'child_process';
+import Logger from 'log4js';
 import { Readable } from 'stream';
 import cache from './cache.js';
-import logger from './logger.js';
 import TrackMetadata from './Model/Internal/TrackMetadata.js';
 
+const logger = Logger.getLogger('ffmpeg');
 // magic number introduction
 const MAX_FFMPEG_PARALLEL = 6;
 let ffmpegsNow = 0;

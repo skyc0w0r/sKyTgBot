@@ -2,6 +2,7 @@ import { join } from 'path';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 
 interface Config {
+    LOG_CONFIG: string
     TG_BOT_TOKEN: string
     TG_HOOK_URL: string
     LISTEN_PORT: number
@@ -11,6 +12,7 @@ interface Config {
 
 const PLACEHOLDER = '[change_me]';
 const DefaultConfig: Config = {
+    LOG_CONFIG: 'log4js.default.json',
     TG_BOT_TOKEN: PLACEHOLDER,
     TG_HOOK_URL: 'https://bot.skycolor.space/tg',
     LISTEN_PORT: 32280,

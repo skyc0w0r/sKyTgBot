@@ -7,7 +7,7 @@ const flushPromises = () => new Promise(setImmediate);
 describe('ytdl test', () => {
     it('Should get video formats', async () => {
         await ytdl.getInfo('https://www.youtube.com/watch?v=n78Gg6_zEQg').then(e => console.log(e));
-        expect(console.log).toBeCalled();
+        expect(console.log).toHaveBeenCalled();
     });
     it('Should download audio', () => {
         ytdl('https://www.youtube.com/watch?v=n78Gg6_zEQg', { filter: 'audioonly' }).pipe(createWriteStream('./test.bin'));

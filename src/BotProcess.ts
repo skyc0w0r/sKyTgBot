@@ -1,8 +1,8 @@
+import Logger from 'log4js';
 import cache from './cache.js';
 import DataBase from './DataBase.js';
 import FFmpegWrapper from './FFmpegWrapper.js';
 import human from './human.js';
-import logger from './logger.js';
 import AudioEntity from './Model/Internal/AudioEntity.js';
 import RequestFile from './Model/Internal/RequestFile.js';
 import TrackMetadata from './Model/Internal/TrackMetadata.js';
@@ -12,6 +12,7 @@ import net from './net.js';
 import TelegramApi from './TelegramApi.js';
 import YouTubeApi from './YouTubeApi.js';
 
+const logger = Logger.getLogger('bot');
 const ytreg = new RegExp('(https?://)?(www.)?(youtube\\.com/watch\\?v=|youtu\\.be/)(?<link>[^?&]+)');
 const err400reg = new RegExp('[ \\n]4\\d\\d[ \\n]');
 
@@ -93,17 +94,19 @@ class BotProcess {
         return null;
     }
 
-    private async yt2audio(msg: Message, link: string): Promise<void> {
+    private async yt2audio(msg: Message, videoId: string): Promise<void> {
         try {
             if (this.inProgress[msg.Chat.Id]) {
                 await this.tgApi.SendMessage(msg.Chat.Id, 'Already processing this video for you, please wait', this.inProgress[msg.Chat.Id]);
                 return;
             }
             this.inProgress[msg.Chat.Id] = msg.Id;
-            if (await this.db.exists(link)) {
-                await this.yt2audioCache(msg, link);
+            const audio = await this.db.get(videoId);
+            if (audio) {
+                if (audio.available === 'yes') await this.yt2audioCache(msg, audio);
+                else await this.tgApi.SendMessage(msg.Chat.Id, 'Video is unavailable in my country or age restricted 😥');
             } else {
-                await this.yt2audioNew(msg, link);
+                await this.yt2audioNew(msg, videoId);
             }
         } catch (e) {
             this.inProgress[msg.Chat.Id] = 0;
@@ -112,10 +115,10 @@ class BotProcess {
         this.inProgress[msg.Chat.Id] = 0;
     }
 
-    private async yt2audioNew(msg: Message, link: string): Promise<void> {
+    private async yt2audioNew(msg: Message, videoId: string): Promise<void> {
         const audioEntity: Partial<AudioEntity> = {};
 
-        const videoInfo = await this.ytApi.getVideoInfo(link);
+        const videoInfo = await this.ytApi.getVideoInfo(videoId);
         if (!videoInfo) {
             await this.tgApi.SendMessage(msg.Chat.Id, 'Invalid video id or failed to get video information').then();
             return;
@@ -127,7 +130,7 @@ class BotProcess {
 
         const thumbnailLarge = videoInfo.Snippet.bestThumbnail;
         if (!thumbnailLarge) {
-            logger.error('Video has no thumbnail (how?)', link);
+            logger.error('Video has no thumbnail (how?)', videoId);
             await this.tgApi.SendMessage(msg.Chat.Id, 'Failed to get video info, try again later 😔');
             return;
         }
@@ -148,26 +151,27 @@ class BotProcess {
 
         await this.tgApi.SendChatAction(msg.Chat.Id, 'upload_document');
 
-        const sourceStream = this.ytApi.getAudioStream(link);
+        const sourceStream = this.ytApi.getAudioStream(videoId);
         const audioLocalPath = cache.getTempFileName('m4a');
         try {
             await FFmpegWrapper.convertStreamAAC(sourceStream, audioLocalPath);
-        } catch (e) {
-            if (e instanceof Error) {
-                if (err400reg.test(e.message)) {
+        } catch (ex) {
+            if (ex instanceof Error) {
+                if (err400reg.test(ex.message)) {
                     audioEntity.available = 'no';
 
                     await this.tgApi.SendMessage(msg.Chat.Id, 'Video is unavailable in my country or age restricted 😥');
-                    await this.db.set(link, audioEntity as AudioEntity);
+                    await this.db.set(videoId, audioEntity as AudioEntity);
 
                     cache.removeFromCache(thumbLocalPath);
                     return;
                 }
             }
+            logger.warn('!!! Failed to get video, but unknown reason', ex);
             audioEntity.available = 'probably';
 
             await this.tgApi.SendMessage(msg.Chat.Id, 'Failed to get video 😥');
-            await this.db.set(link, audioEntity as AudioEntity);
+            await this.db.set(videoId, audioEntity as AudioEntity);
 
             return;
         }
@@ -183,7 +187,7 @@ class BotProcess {
             artist: videoInfo.Snippet.ChannelTitle,
             title: videoInfo.Snippet.Title,
             date: human.date(videoInfo.Snippet.PublishedAt),
-            composer: link,
+            composer: videoId,
             coverPath: thumbLocalPath,
             genre: 'Music',
         };
@@ -199,16 +203,12 @@ class BotProcess {
         audioEntity.fileId = audioMessage.Audio.Id;
         audioEntity.available = 'yes';
 
-        await this.db.set(link, audioEntity as AudioEntity);
-
+        await this.db.set(videoId, audioEntity as AudioEntity);
     }
 
-    private async yt2audioCache(msg: Message, link: string): Promise<void> {
-        const a = await this.db.get(link);
-
-        await this.sendThumb(msg, a, true);
-
-        await this.sendAudio(msg, a);
+    private async yt2audioCache(msg: Message, audio: AudioEntity): Promise<void> {
+        await this.sendThumb(msg, audio, true);
+        await this.sendAudio(msg, audio);
     }
 
 

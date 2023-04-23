@@ -30,5 +30,8 @@ build/
 
 # user's
 config.json
+log4js.config.json
 database.json
 cache/
+*.sqlite
+*.sqlite3
