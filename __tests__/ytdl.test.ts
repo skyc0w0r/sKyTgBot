@@ -1,6 +1,6 @@
 import { createWriteStream, existsSync } from 'fs';
-import ytdl from 'ytdl-core';
 import FFmpegWrapper from '../src/FFmpegWrapper';
+import ytdl from '@distube/ytdl-core';
 
 const flushPromises = () => new Promise(setImmediate);
 

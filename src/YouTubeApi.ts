@@ -1,4 +1,4 @@
-import ytdl from 'ytdl-core';
+import ytdl from '@distube/ytdl-core';
 import { Readable } from 'stream';
 import RequestParams from './Model/Internal/RequestParams.js';
 import Video from './Model/YouTube/Video.js';
