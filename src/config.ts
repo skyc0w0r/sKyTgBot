@@ -7,6 +7,7 @@ interface Config {
     TG_HOOK_URL: string
     LISTEN_PORT: number
     YT_DATA_TOKEN: string
+    YT_EXTERNAL_LOADER: boolean
     ADMIN_ID: number
 }
 
@@ -17,6 +18,7 @@ const DefaultConfig: Config = {
     TG_HOOK_URL: 'https://bot.skycolor.space/tg',
     LISTEN_PORT: 32280,
     YT_DATA_TOKEN: PLACEHOLDER,
+    YT_EXTERNAL_LOADER: false,
     ADMIN_ID: 0,
 };
 const configPath = join(process.cwd(), 'config.json');

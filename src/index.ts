@@ -16,7 +16,7 @@ async function main(): Promise<void> {
     const logger = Logger.getLogger('main');
 
     const tgapi = new TelegramApi(config.get().TG_BOT_TOKEN);
-    const ytapi = new YouTubeApi(config.get().YT_DATA_TOKEN);
+    const ytapi = new YouTubeApi();
     const db = new DataBase();
     await db.init();
     const app = express();
